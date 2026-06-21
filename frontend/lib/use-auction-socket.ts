@@ -2,6 +2,7 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { io, Socket } from "socket.io-client";
 import { RoomState } from "@/types";
+import { useAuctionHistory } from "@/lib/use-auction-history";
 
 function getCookie(name: string): string {
   if (typeof document === "undefined") return "";
@@ -38,6 +39,8 @@ export function useAuctionSocket(roomCode: string): UseAuctionSocketReturn {
   const [myTeamCode, setMyTeamCode] = useState<string | null>(null);
   const [lastRejection, setLastRejection] = useState<string | null>(null);
   const socketRef = useRef<Socket | null>(null);
+  
+  const { updateHistory } = useAuctionHistory();
 
   const sessionId = getCookie("sessionId");
   const displayName = getCookie("displayName");
@@ -69,6 +72,12 @@ export function useAuctionSocket(roomCode: string): UseAuctionSocketReturn {
         (t) => t.ownerSessionId === sessionId
       );
       setMyTeamCode(myTeam?.code ?? null);
+      
+      updateHistory({
+        roomCode,
+        teamCode: myTeam?.code ?? null,
+        status: state.status,
+      });
     });
 
     socket.on("team_confirmed", ({ teamCode }: { teamCode: string }) => {
