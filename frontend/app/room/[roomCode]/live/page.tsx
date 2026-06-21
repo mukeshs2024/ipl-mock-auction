@@ -1,8 +1,10 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuctionSocket } from "@/lib/use-auction-socket";
+import { useAuctionHistory } from "@/lib/use-auction-history";
 import { Player } from "@/types";
 import PlayerSpotlight from "@/components/live/PlayerSpotlight";
 import BidButton from "@/components/live/BidButton";
@@ -14,6 +16,8 @@ import HostPanel from "@/components/live/HostPanel";
 export default function LivePage({ params }: { params: { roomCode: string } }) {
   const { roomCode } = params;
   const router = useRouter();
+
+  const { updateHistory } = useAuctionHistory();
 
   const {
     roomState,
@@ -55,6 +59,17 @@ export default function LivePage({ params }: { params: { roomCode: string } }) {
     }
     prevSoldCountRef.current = newSoldCount;
   }, [roomState?.soldPlayers.length]);
+
+  // Update local history
+  useEffect(() => {
+    if (roomState?.status && roomCode) {
+      updateHistory({
+        roomCode,
+        teamCode: myTeamCode,
+        status: roomState.status,
+      });
+    }
+  }, [roomState?.status, roomCode, myTeamCode, updateHistory]);
 
   // Redirect to lobby if in lobby state, summary if ended
   useEffect(() => {
@@ -100,15 +115,6 @@ export default function LivePage({ params }: { params: { roomCode: string } }) {
             {isPaused ? "PAUSED" : "LIVE AUCTION"}
           </span>
           <span className="text-muted text-xs hidden sm:block">· Room {roomCode}</span>
-          <button 
-            onClick={() => {
-              navigator.clipboard.writeText(`${window.location.origin}/join`);
-              alert(`Share this code to join: ${roomCode}`);
-            }}
-            className="ml-2 bg-[rgba(242,183,5,0.1)] text-[#F2B705] hover:bg-[rgba(242,183,5,0.2)] px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider transition-colors"
-          >
-            Copy Invite
-          </button>
         </div>
 
         <div className="flex items-center gap-4">
@@ -134,29 +140,56 @@ export default function LivePage({ params }: { params: { roomCode: string } }) {
       {/* ── Main layout (Single Column Mobile-First) ── */}
       <div className="flex-1 flex flex-col overflow-y-auto custom-scroll w-full max-w-md mx-auto px-4 py-6">
         
-        {/* ── HOST AUCTION FLOW CONTROLS (Top of Bid Process) ── */}
-        {isHost && (
-          <div className="w-full flex gap-2 mb-4 p-2 rounded-lg" style={{ background: "rgba(30,45,74,0.3)", border: "1px solid rgba(242,183,5,0.3)" }}>
-            {isLive && (
-              <button className="flex-1 btn-secondary text-xs py-2" onClick={() => hostAction("pause_auction")}>
-                ⏸ Pause
-              </button>
-            )}
-            {isPaused && (
-              <button className="flex-1 btn-primary text-xs py-2" onClick={() => hostAction("resume_auction")}>
-                ▶️ Resume
-              </button>
-            )}
-            {(isLive || isPaused) && (
-              <button className="flex-1 btn-secondary text-xs py-2" onClick={() => hostAction("skip_player")}>
-                ⏭ Skip
-              </button>
-            )}
-            <button className="flex-1 btn-danger text-xs py-2" onClick={() => { if (confirm("End the auction now?")) hostAction("end_auction"); }}>
-              🏁 End
+        {/* ── TOP ACTION BAR (Home, Invite, Host Controls) ── */}
+        <div className="w-full flex flex-col md:flex-row gap-2 mb-4">
+          <div className="flex w-full md:w-auto gap-2">
+            <button 
+              onClick={() => router.push("/")} 
+              className="flex-1 md:flex-none btn-secondary text-xs py-2 px-4 flex items-center justify-center gap-1 hover:text-white"
+            >
+              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+              </svg>
+              Home
+            </button>
+            <button 
+              onClick={() => {
+                navigator.clipboard.writeText(`${window.location.origin}/join`);
+                alert(`Share this code to join: ${roomCode}`);
+              }}
+              className="flex-1 md:flex-none btn-secondary text-xs py-2 px-4 flex items-center justify-center gap-1 hover:text-white"
+            >
+              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              </svg>
+              <span className="hidden md:inline">Copy Invite</span>
+              <span className="md:hidden">Invite</span>
             </button>
           </div>
-        )}
+
+          {isHost && (
+            <div className="flex w-full md:flex-1 gap-2 p-1 rounded-lg" style={{ background: "rgba(30,45,74,0.3)", border: "1px solid rgba(242,183,5,0.3)" }}>
+              {isLive && (
+                <button className="flex-1 btn-secondary text-xs py-2 px-2" onClick={() => hostAction("pause_auction")}>
+                  ⏸ Pause
+                </button>
+              )}
+              {isPaused && (
+                <button className="flex-1 btn-primary text-xs py-2 px-2" onClick={() => hostAction("resume_auction")}>
+                  ▶️ Resume
+                </button>
+              )}
+              {(isLive || isPaused) && (
+                <button className="flex-1 btn-secondary text-xs py-2 px-2" onClick={() => hostAction("skip_player")}>
+                  ⏭ Skip
+                </button>
+              )}
+              <button className="flex-1 btn-danger text-xs py-2 px-2" onClick={() => { if (confirm("End the auction now?")) hostAction("end_auction"); }}>
+                🏁 End
+              </button>
+            </div>
+          )}
+        </div>
 
         {/* ── CENTER STAGE (Bid Process) ── */}
         <div className="w-full flex flex-col items-center justify-start mb-6">

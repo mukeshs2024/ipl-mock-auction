@@ -33,13 +33,44 @@ function formatTime(ts: number): string {
 }
 
 export default function ActivityFeed({ entries, onSendChat }: ActivityFeedProps) {
-  const bottomRef = useRef<HTMLDivElement>(null);
+  const feedContainerRef = useRef<HTMLDivElement>(null);
   const [chatMessage, setChatMessage] = useState("");
+  const [isScrolledUp, setIsScrolledUp] = useState(false);
+  const [hasNewActivity, setHasNewActivity] = useState(false);
+  const lastEntryCount = useRef(entries.length);
 
-  // Auto-scroll to bottom on new entries
+  const handleScroll = () => {
+    if (!feedContainerRef.current) return;
+    const { scrollTop, scrollHeight, clientHeight } = feedContainerRef.current;
+    // If user is within 20px of the bottom, we consider them "at bottom"
+    const atBottom = scrollHeight - scrollTop - clientHeight < 20;
+    setIsScrolledUp(!atBottom);
+    if (atBottom) {
+      setHasNewActivity(false);
+    }
+  };
+
+  const scrollToBottom = () => {
+    if (feedContainerRef.current) {
+      feedContainerRef.current.scrollTop = feedContainerRef.current.scrollHeight;
+    }
+    setIsScrolledUp(false);
+    setHasNewActivity(false);
+  };
+
+  // Auto-scroll to bottom on new entries, if not scrolled up
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [entries.length]);
+    if (entries.length > lastEntryCount.current) {
+      if (!isScrolledUp) {
+        if (feedContainerRef.current) {
+          feedContainerRef.current.scrollTop = feedContainerRef.current.scrollHeight;
+        }
+      } else {
+        setHasNewActivity(true);
+      }
+    }
+    lastEntryCount.current = entries.length;
+  }, [entries, isScrolledUp]);
 
   const handleSend = (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,16 +80,20 @@ export default function ActivityFeed({ entries, onSendChat }: ActivityFeedProps)
   };
 
   return (
-    <div className="flex flex-col h-full w-full">
+    <div className="flex flex-col h-full w-full relative">
       <h3 className="text-xs font-semibold text-muted uppercase tracking-widest mb-3 shrink-0">
         Activity Feed
       </h3>
-      <div className="flex-1 overflow-y-auto custom-scroll space-y-1.5 pr-1 mb-3">
+      <div 
+        ref={feedContainerRef}
+        onScroll={handleScroll}
+        className="flex-1 overflow-y-auto custom-scroll space-y-1.5 pr-1 mb-3 relative"
+      >
         {entries.length === 0 && (
           <p className="text-muted text-xs text-center py-8">No activity yet</p>
         )}
         <AnimatePresence initial={false}>
-          {[...entries].reverse().map((entry) => (
+          {entries.map((entry) => (
             <motion.div
               key={entry.id}
               initial={{ opacity: 0, x: 10 }}
@@ -74,8 +109,18 @@ export default function ActivityFeed({ entries, onSendChat }: ActivityFeedProps)
             </motion.div>
           ))}
         </AnimatePresence>
-        <div ref={bottomRef} />
       </div>
+
+      {hasNewActivity && isScrolledUp && (
+        <div className="absolute bottom-[60px] left-1/2 -translate-x-1/2 z-10">
+          <button 
+            onClick={scrollToBottom} 
+            className="bg-[#F2B705] text-[#0B0F19] text-xs font-bold px-4 py-2 rounded-full shadow-lg flex items-center gap-2 hover:bg-[#dca604] transition-colors"
+          >
+            New Activity ↓
+          </button>
+        </div>
+      )}
 
       {/* Chat Input */}
       {onSendChat && (

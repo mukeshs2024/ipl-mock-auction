@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { v4 as uuidv4 } from "uuid";
 
-type Step = "info" | "settings" | "creating";
+type Step = "info" | "settings";
 
 function formatLakhsClient(lakhs: number): string {
   if (lakhs >= 100) {
@@ -18,6 +18,7 @@ export default function CreatePage() {
   const router = useRouter();
 
   const [step, setStep] = useState<Step>("info");
+  const [isCreating, setIsCreating] = useState(false);
   const [hostName, setHostName] = useState("");
   const [pursePerTeam, setPursePerTeam] = useState(12000); // 120 Cr default
   const [timerSeconds, setTimerSeconds] = useState(10);
@@ -27,7 +28,7 @@ export default function CreatePage() {
   const sessionId = useRef(uuidv4());
 
   const handleCreate = async () => {
-    setStep("creating");
+    setIsCreating(true);
     setError("");
 
     const hostToken = uuidv4();
@@ -59,7 +60,7 @@ export default function CreatePage() {
       router.push(`/room/${roomCode}/lobby`);
     } catch (err: any) {
       setError(err.message || "Failed to connect to server. Is it running?");
-      setStep("settings");
+      setIsCreating(false);
     }
   };
 
@@ -177,22 +178,13 @@ export default function CreatePage() {
               {error && <p className="text-crimson-hot text-sm mt-4">{error}</p>}
 
               <div className="flex gap-3 mt-6">
-                <button className="btn-secondary py-4 px-6" onClick={() => setStep("info")}>
+                <button className="btn-secondary py-4 px-6" onClick={() => setStep("info")} disabled={isCreating}>
                   ← Back
                 </button>
-                <button className="btn-primary flex-1 py-4 text-lg" onClick={handleCreate}>
-                  🚀 Create Room
+                <button className="btn-primary flex-1 py-4 text-lg" onClick={handleCreate} disabled={isCreating}>
+                  {isCreating ? "Creating..." : "🚀 Create Room"}
                 </button>
               </div>
-            </motion.div>
-          )}
-
-          {/* Creating spinner */}
-          {step === "creating" && (
-            <motion.div key="creating" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="glass-panel p-12 text-center">
-              <div className="w-16 h-16 border-4 border-[#F2B705] border-t-transparent rounded-full animate-spin mx-auto mb-6" />
-              <p className="font-display text-2xl font-bold">Creating your room...</p>
-              <p className="text-muted text-sm mt-2">Loading default CSV dataset...</p>
             </motion.div>
           )}
         </AnimatePresence>
