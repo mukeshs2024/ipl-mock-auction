@@ -9,7 +9,7 @@ let socket: Socket | null = null;
 
 export function getSocket(): Socket {
   if (!socket) {
-    socket = io(process.env.NEXT_PUBLIC_API_URL || "https://ipl-mock-auction-3aqu.onrender.com", {
+    socket = io((process.env.NEXT_PUBLIC_API_URL || "https://ipl-mock-auction-3aqu.onrender.com").replace(/\/$/, ""), {
       autoConnect: false,
       reconnection: true,
       reconnectionDelay: 1000,
