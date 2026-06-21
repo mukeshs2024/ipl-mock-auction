@@ -52,7 +52,7 @@ export default function JoinPage() {
     const upperCode = code.toUpperCase().trim();
 
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}/api/room/${upperCode}/exists`);
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "https://ipl-mock-auction-3aqu.onrender.com"}/api/room/${upperCode}/exists`);
       const { exists } = await res.json();
       if (!exists) {
         setError("Room not found. Check the code and try again.");

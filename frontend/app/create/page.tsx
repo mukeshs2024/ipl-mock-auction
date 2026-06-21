@@ -39,7 +39,7 @@ export default function CreatePage() {
     document.cookie = `displayName=${encodeURIComponent(hostName)}; path=/; max-age=86400`;
 
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}/api/create-room`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "https://ipl-mock-auction-3aqu.onrender.com"}/api/create-room`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
