@@ -24,7 +24,7 @@ import {
 } from "../types";
 import { parsePlayersCSV } from "../lib/csv-parser";
 
-const PORT = parseInt(process.env.SERVER_PORT || "3001", 10);
+const PORT = parseInt(process.env.PORT || "3001", 10);
 const UPLOADS_DIR = path.join(process.cwd(), "data", "uploads");
 
 if (!fs.existsSync(UPLOADS_DIR)) {
@@ -94,10 +94,23 @@ async function restoreRooms() {
 // ============================================================
 // REST: create room
 // ============================================================
+app.get("/", (_, res) => {
+  res.json({
+    status: "ok",
+    service: "ipl-mock-auction"
+  });
+});
+
+app.get("/health", (_, res) => {
+  res.json({
+    status: "healthy"
+  });
+});
+
 app.post("/api/create-room", (req, res) => {
   const body = req.body as CreateRoomPayload;
 
-  const csvPath = path.join(process.cwd(), "Data", "IPL_Auction_Player_List_Structured.csv");
+  const csvPath = path.join(__dirname, "..", "Data", "IPL_Auction_Player_List_Structured.csv");
   let csvText = "";
   try {
     csvText = fs.readFileSync(csvPath, "utf-8");
