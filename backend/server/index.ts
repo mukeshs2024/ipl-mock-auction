@@ -260,7 +260,7 @@ io.on("connection", (socket: Socket) => {
   socket.on("bid", ({ roomCode, teamCode, sessionId, amount }: BidPayload) => {
     const actor = rooms.get(roomCode.toUpperCase());
     if (!actor) { socket.emit("room_not_found", { roomCode }); return; }
-    actor.handleBid(socket, sessionId, teamCode, amount);
+    actor.handleBid(socket, sessionId, teamCode, amount ?? 0);
   });
 
   socket.on("host_action", ({ roomCode, hostToken, action }: HostActionPayload) => {
