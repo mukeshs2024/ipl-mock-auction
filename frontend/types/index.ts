@@ -32,10 +32,11 @@ export interface Team {
   isConnected: boolean;   // whether the owner socket is currently connected
 }
 
-export type RoomStatus = "lobby" | "live" | "paused" | "ended";
+export type RoomStatus = "lobby" | "live" | "paused" | "ended" | "transition";
 
 export interface RoomState {
   roomCode: string;
+  isPublic: boolean;
   hostSessionId: string;
   hostName: string;
   status: RoomStatus;
@@ -45,6 +46,7 @@ export interface RoomState {
   currentSetQueue: Player[];   // shuffled players for the active set
   currentPlayer: Player | null;
   currentBid: number;          // Lakhs
+  nextBidAmount: number;       // Lakhs
   currentBidderTeam: string | null;
   timerEndsAt: number | null;  // epoch ms, server-authoritative
   timerDurationSeconds: number; // configurable, default 10
@@ -96,10 +98,8 @@ export interface BidSlab {
 }
 
 export const DEFAULT_BID_SLABS: BidSlab[] = [
-  { from: 0,    to: 200,       increment: 20  },
-  { from: 200,  to: 500,       increment: 25  },
-  { from: 500,  to: 1000,      increment: 50  },
-  { from: 1000, to: Infinity,  increment: 100 },
+  { from: 0,    to: 100,       increment: 10  },
+  { from: 100,  to: Infinity,  increment: 25  },
 ];
 
 // ============================================================
@@ -111,6 +111,7 @@ export interface CreateRoomPayload {
   hostName: string;
   hostSessionId: string;
   hostToken: string;
+  isPublic: boolean;
   players: Player[];         // parsed from CSV on client
   pursePerTeam: number;      // Lakhs
   timerDurationSeconds: number;
@@ -133,7 +134,7 @@ export interface BidPayload {
   roomCode: string;
   teamCode: string;
   sessionId: string;
-  amount: number; // in Lakhs — the NEW total bid amount
+  amount?: number; // Optional. If omitted, backend uses nextBidAmount
 }
 
 export interface ChatPayload {

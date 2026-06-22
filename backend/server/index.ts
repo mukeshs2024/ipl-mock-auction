@@ -61,6 +61,27 @@ function generateRoomCode(): string {
 }
 
 // ============================================================
+// Preload CSV Data
+// ============================================================
+import { Player } from "../types";
+let cachedPlayers: Player[] = [];
+let cachedSets: string[] = [];
+
+function preloadCSV() {
+  const csvPath = path.join(__dirname, "..", "Data", "IPL_Auction_Player_List_Structured.csv");
+  try {
+    const csvText = fs.readFileSync(csvPath, "utf-8");
+    const parseResult = parsePlayersCSV(csvText);
+    cachedPlayers = parseResult.players;
+    cachedSets = parseResult.sets;
+    console.log(`[Server] Preloaded CSV: ${cachedPlayers.length} players, ${cachedSets.length} sets`);
+  } catch (err) {
+    console.error("[Server] Failed to preload CSV file:", err);
+  }
+}
+preloadCSV();
+
+// ============================================================
 // Restore rooms from DB on startup
 // ============================================================
 async function restoreRooms() {
@@ -110,18 +131,8 @@ app.get("/health", (_, res) => {
 app.post("/api/create-room", (req, res) => {
   const body = req.body as CreateRoomPayload;
 
-  const csvPath = path.join(__dirname, "..", "Data", "IPL_Auction_Player_List_Structured.csv");
-  let csvText = "";
-  try {
-    csvText = fs.readFileSync(csvPath, "utf-8");
-  } catch (err) {
-    res.status(500).json({ error: "Failed to read default CSV file" });
-    return;
-  }
-
-  const parseResult = parsePlayersCSV(csvText);
-  if (parseResult.players.length === 0) {
-    res.status(500).json({ error: "No valid players found in CSV" });
+  if (cachedPlayers.length === 0) {
+    res.status(500).json({ error: "Server error: No valid players loaded" });
     return;
   }
 
@@ -136,18 +147,24 @@ app.post("/api/create-room", (req, res) => {
     roomCode,
     body.hostSessionId,
     body.hostName,
-    parseResult.players,
-    parseResult.sets,
+    structuredClone(cachedPlayers),
+    structuredClone(cachedSets),
     body.pursePerTeam,
     body.timerDurationSeconds,
-    body.reunsoldPhaseEnabled
+    body.reunsoldPhaseEnabled,
+    body.isPublic || false
   );
 
   const actor = new RoomActor(io, initialState, hostToken);
   rooms.set(roomCode, actor);
 
-  console.log(`[Server] Room created: ${roomCode} (${parseResult.players.length} players, ${parseResult.sets.length} sets)`);
+  console.log(`[Server] Room created: ${roomCode} (${cachedPlayers.length} players, ${cachedSets.length} sets)`);
   res.json({ roomCode, hostToken });
+
+  // Save to DB in the background
+  actor.enqueue(async () => {
+    await (actor as any).save();
+  });
 });
 
 // REST: get room state
@@ -161,6 +178,29 @@ app.get("/api/room/:roomCode", (req, res) => {
 app.get("/api/room/:roomCode/exists", (req, res) => {
   const exists = rooms.has(req.params.roomCode.toUpperCase());
   res.json({ exists });
+});
+
+// REST: get public rooms
+app.get("/api/public-rooms", (req, res) => {
+  const publicRooms: any[] = [];
+  rooms.forEach((actor) => {
+    const s = actor.state;
+    if (s.isPublic && (s.status === "lobby" || s.status === "live")) {
+      const playersJoined = Object.values(s.teams).filter(t => t.ownerSessionId).length;
+      publicRooms.push({
+        roomCode: s.roomCode,
+        hostName: s.hostName,
+        status: s.status,
+        playersJoined,
+      });
+    }
+  });
+  // Sort by live first, then most players
+  publicRooms.sort((a, b) => {
+    if (a.status !== b.status) return a.status === "live" ? -1 : 1;
+    return b.playersJoined - a.playersJoined;
+  });
+  res.json({ rooms: publicRooms });
 });
 
 // ============================================================

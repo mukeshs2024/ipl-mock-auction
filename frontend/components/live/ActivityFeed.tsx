@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ActivityLogEntry } from "@/types";
 
@@ -9,22 +9,22 @@ interface ActivityFeedProps {
 }
 
 const TYPE_COLORS: Record<string, string> = {
-  bid: "#F2B705",
-  sold: "#1FAA59",
-  unsold: "#E2433D",
-  team_claimed: "#6366f1",
-  team_released: "#6b7280",
-  team_reassigned: "#8b5cf6",
-  host_action: "#94a3b8",
-  joined: "#60a5fa",
-  left: "#6b7280",
-  kicked: "#E2433D",
-  auction_started: "#1FAA59",
-  auction_paused: "#F2B705",
-  auction_resumed: "#1FAA59",
-  set_started: "#a78bfa",
-  set_ended: "#6b7280",
-  chat: "#0ea5e9", // Light blue for chat
+  bid: "#0066FF",
+  sold: "#22C55E",
+  unsold: "#EF4444",
+  team_claimed: "#0066FF",
+  team_released: "#6B7280",
+  team_reassigned: "#3B82F6",
+  host_action: "#B8C0D4",
+  joined: "#0066FF",
+  left: "#6B7280",
+  kicked: "#EF4444",
+  auction_started: "#22C55E",
+  auction_paused: "#F59E0B",
+  auction_resumed: "#22C55E",
+  set_started: "#3B82F6",
+  set_ended: "#6B7280",
+  chat: "#0066FF",
 };
 
 function formatTime(ts: number): string {
@@ -32,18 +32,23 @@ function formatTime(ts: number): string {
   return d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
 }
 
-export default function ActivityFeed({ entries, onSendChat }: ActivityFeedProps) {
+function ActivityFeedComponent({ entries, onSendChat }: ActivityFeedProps) {
   const feedContainerRef = useRef<HTMLDivElement>(null);
   const [chatMessage, setChatMessage] = useState("");
   const [isScrolledUp, setIsScrolledUp] = useState(false);
   const [hasNewActivity, setHasNewActivity] = useState(false);
-  const lastEntryCount = useRef(entries.length);
+  const lastEntryId = useRef<string | null>(null);
+
+  // The backend prepends new items (newest at index 0).
+  // We want old at TOP, new at BOTTOM, so we reverse the array.
+  const displayEntries = [...entries].reverse();
 
   const handleScroll = () => {
     if (!feedContainerRef.current) return;
     const { scrollTop, scrollHeight, clientHeight } = feedContainerRef.current;
-    // If user is within 20px of the bottom, we consider them "at bottom"
-    const atBottom = scrollHeight - scrollTop - clientHeight < 20;
+    
+    // Consider it "at bottom" if within 40px
+    const atBottom = scrollHeight - scrollTop - clientHeight < 40;
     setIsScrolledUp(!atBottom);
     if (atBottom) {
       setHasNewActivity(false);
@@ -58,19 +63,26 @@ export default function ActivityFeed({ entries, onSendChat }: ActivityFeedProps)
     setHasNewActivity(false);
   };
 
-  // Auto-scroll to bottom on new entries, if not scrolled up
   useEffect(() => {
-    if (entries.length > lastEntryCount.current) {
+    if (displayEntries.length === 0) return;
+    const newestEntry = displayEntries[displayEntries.length - 1];
+    
+    if (newestEntry.id !== lastEntryId.current) {
+      lastEntryId.current = newestEntry.id;
+      
+      // Auto-scroll logic: only if user is already at the bottom
       if (!isScrolledUp) {
-        if (feedContainerRef.current) {
-          feedContainerRef.current.scrollTop = feedContainerRef.current.scrollHeight;
-        }
+        // Use a small timeout to allow DOM to render the new item before scrolling
+        setTimeout(() => {
+          if (feedContainerRef.current) {
+            feedContainerRef.current.scrollTop = feedContainerRef.current.scrollHeight;
+          }
+        }, 10);
       } else {
         setHasNewActivity(true);
       }
     }
-    lastEntryCount.current = entries.length;
-  }, [entries, isScrolledUp]);
+  }, [displayEntries, isScrolledUp]);
 
   const handleSend = (e: React.FormEvent) => {
     e.preventDefault();
@@ -87,25 +99,25 @@ export default function ActivityFeed({ entries, onSendChat }: ActivityFeedProps)
       <div 
         ref={feedContainerRef}
         onScroll={handleScroll}
-        className="flex-1 overflow-y-auto custom-scroll space-y-1.5 pr-1 mb-3 relative"
+        className="flex-1 overflow-y-auto custom-scroll space-y-2 pr-1 mb-3 relative"
       >
-        {entries.length === 0 && (
+        {displayEntries.length === 0 && (
           <p className="text-muted text-xs text-center py-8">No activity yet</p>
         )}
         <AnimatePresence initial={false}>
-          {entries.map((entry) => (
+          {displayEntries.map((entry) => (
             <motion.div
               key={entry.id}
-              initial={{ opacity: 0, x: 10 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.25 }}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.2 }}
               className="flex items-start gap-2 px-3 py-2 rounded-lg"
-              style={{ background: "rgba(16,23,42,0.6)", borderLeft: `2px solid ${TYPE_COLORS[entry.type] || "#334155"}` }}
+              style={{ background: "rgba(11, 11, 11, 0.8)", borderLeft: `2px solid ${TYPE_COLORS[entry.type] || "#3B82F6"}` }}
             >
               <span className="text-muted text-[10px] tabular-nums shrink-0 mt-0.5 font-mono">
                 {formatTime(entry.timestamp)}
               </span>
-              <p className="text-white text-xs leading-relaxed">{entry.message}</p>
+              <p className="text-white text-sm leading-relaxed font-medium">{entry.message}</p>
             </motion.div>
           ))}
         </AnimatePresence>
@@ -115,7 +127,7 @@ export default function ActivityFeed({ entries, onSendChat }: ActivityFeedProps)
         <div className="absolute bottom-[60px] left-1/2 -translate-x-1/2 z-10">
           <button 
             onClick={scrollToBottom} 
-            className="bg-[#F2B705] text-[#0B0F19] text-xs font-bold px-4 py-2 rounded-full shadow-lg flex items-center gap-2 hover:bg-[#dca604] transition-colors"
+            className="bg-[#0066FF] text-[#FFFFFF] text-xs font-bold px-4 py-2 rounded-full shadow-[0_4px_14px_rgba(0,102,255,0.4)] flex items-center gap-2 hover:bg-[#3B82F6] transition-colors"
           >
             New Activity ↓
           </button>
@@ -140,3 +152,5 @@ export default function ActivityFeed({ entries, onSendChat }: ActivityFeedProps)
     </div>
   );
 }
+
+export default memo(ActivityFeedComponent);

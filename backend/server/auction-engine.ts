@@ -33,9 +33,7 @@ export function validateBid(
   const team = state.teams[teamCode];
   if (!team) return "Unknown team";
 
-  const minNextBid = state.currentBid === 0
-    ? state.currentPlayer.basePrice
-    : getNextBidAmount(state.currentBid, slabs);
+  const minNextBid = state.nextBidAmount;
 
   if (bidAmount < minNextBid) {
     return `Bid must be at least ₹${formatLakhs(minNextBid)}`;
@@ -46,6 +44,17 @@ export function validateBid(
   //   const remainingRequired = MIN_SQUAD_SIZE - team.squad.length;
   //   const minReserve = remainingRequired * BASE_RESERVE_PER_PLAYER;
   //   if (team.purseRemaining - bidAmount < minReserve) return "Insufficient purse for squad requirements";
+  if (team.squad.length >= 25) {
+    return "Squad full (Max 25 players)";
+  }
+
+  if (state.currentPlayer.isOverseas) {
+    const overseasCount = team.squad.filter((p) => p.isOverseas).length;
+    if (overseasCount >= 8) {
+      return "Max overseas limit reached (8)";
+    }
+  }
+
   if (team.purseRemaining < bidAmount) {
     return `Insufficient purse (₹${formatLakhs(team.purseRemaining)} remaining)`;
   }
@@ -73,6 +82,7 @@ export function advanceToNextPlayer(
       currentSetQueue: remainingQueue,
       currentPlayer: { ...nextPlayer, status: "in_auction" },
       currentBid: 0,
+      nextBidAmount: nextPlayer.basePrice,
       currentBidderTeam: null,
       timerEndsAt: Date.now() + state.timerDurationSeconds * 1000,
     };
@@ -96,6 +106,7 @@ export function advanceToNextPlayer(
         currentSetQueue: shuffled,
         currentPlayer: { ...nextPlayer, status: "in_auction" },
         currentBid: 0,
+        nextBidAmount: nextPlayer.basePrice,
         currentBidderTeam: null,
         timerEndsAt: Date.now() + state.timerDurationSeconds * 1000,
       };
@@ -113,6 +124,7 @@ export function advanceToNextPlayer(
       currentSetQueue: shuffled,
       currentPlayer: { ...nextPlayer, status: "in_auction" },
       currentBid: 0,
+      nextBidAmount: nextPlayer.basePrice,
       currentBidderTeam: null,
       timerEndsAt: Date.now() + state.timerDurationSeconds * 1000,
     };
@@ -123,6 +135,7 @@ export function advanceToNextPlayer(
     status: "ended",
     currentPlayer: null,
     currentBid: 0,
+    nextBidAmount: 0,
     currentBidderTeam: null,
     timerEndsAt: null,
     currentSetQueue: [],

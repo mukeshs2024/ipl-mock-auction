@@ -8,23 +8,28 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        stadium: {
-          bg: '#0B0F19',
-          surface: '#10172A',
-          panel: '#141D33',
+        theme: {
+          bg: '#000000',
+          surface: '#050505',
+          surface2: '#080808',
+          surface3: '#0B0B0B',
+          card: '#0E1528',
           border: '#1E2D4A',
         },
-        amber: {
-          bid: '#F2B705',
-          glow: '#F2B70533',
+        accent: {
+          blue: '#0066FF',
+          hover: '#3B82F6',
+          glow: 'rgba(0,102,255,0.25)',
         },
-        pitch: {
-          green: '#1FAA59',
-          glow: '#1FAA5933',
+        status: {
+          success: '#22C55E',
+          warning: '#F59E0B',
+          danger: '#EF4444',
         },
-        crimson: {
-          hot: '#E2433D',
-          glow: '#E2433D33',
+        text: {
+          primary: '#FFFFFF',
+          secondary: '#B8C0D4',
+          muted: '#6B7280',
         },
         teams: {
           MI: '#004BA0',
@@ -44,27 +49,22 @@ module.exports = {
         body: ['Inter', 'sans-serif'],
       },
       animation: {
-        'pulse-crimson': 'pulse-crimson 0.8s ease-in-out infinite',
-        'sold-stamp': 'sold-stamp 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards',
-        'ticker-slide': 'ticker-slide 0.3s ease-out',
-        'bid-flash': 'bid-flash 0.4s ease-out',
+        'fade-in': 'fadeIn 0.2s ease-in',
+        'slide-up': 'slideUp 0.25s ease-out',
+        'scale-in': 'scaleIn 0.2s ease-out',
       },
       keyframes: {
-        'pulse-crimson': {
-          '0%, 100%': { boxShadow: '0 0 0 0 rgba(226,67,61,0)' },
-          '50%': { boxShadow: '0 0 20px 8px rgba(226,67,61,0.4)' },
+        fadeIn: {
+          '0%': { opacity: '0' },
+          '100%': { opacity: '1' },
         },
-        'sold-stamp': {
-          '0%': { transform: 'scale(0.3) rotate(-15deg)', opacity: '0' },
-          '100%': { transform: 'scale(1) rotate(-5deg)', opacity: '1' },
-        },
-        'ticker-slide': {
-          '0%': { transform: 'translateY(-100%)', opacity: '0' },
+        slideUp: {
+          '0%': { transform: 'translateY(10px)', opacity: '0' },
           '100%': { transform: 'translateY(0)', opacity: '1' },
         },
-        'bid-flash': {
-          '0%': { backgroundColor: 'rgba(242,183,5,0.3)' },
-          '100%': { backgroundColor: 'transparent' },
+        scaleIn: {
+          '0%': { transform: 'scale(0.95)', opacity: '0' },
+          '100%': { transform: 'scale(1)', opacity: '1' },
         },
       },
     },

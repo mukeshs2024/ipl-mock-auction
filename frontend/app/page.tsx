@@ -1,7 +1,8 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { motion } from "framer-motion";
+import Image from "next/image";
+import { motion, AnimatePresence } from "framer-motion";
 import { useAuctionHistory } from "@/lib/use-auction-history";
 
 function formatTimeAgo(timestamp: number): string {
@@ -16,175 +17,274 @@ function formatTimeAgo(timestamp: number): string {
 }
 
 export default function LandingPage() {
-  const [activeView, setActiveView] = useState<"actions" | "history">("actions");
+  const [activeView, setActiveView] = useState<"actions" | "history" | "public">("actions");
   const { history } = useAuctionHistory();
-  return (
-    <main className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden">
-      {/* Ambient background glow */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[600px] rounded-full bg-[#F2B705] opacity-5 blur-[120px]" />
-        <div className="absolute bottom-0 left-1/4 w-[400px] h-[400px] rounded-full bg-[#1FAA59] opacity-5 blur-[100px]" />
-        <div className="absolute top-0 right-1/4 w-[300px] h-[300px] rounded-full bg-[#EC1C24] opacity-5 blur-[80px]" />
-      </div>
+  const [publicRooms, setPublicRooms] = useState<any[]>([]);
+  const [loadingPublic, setLoadingPublic] = useState(false);
 
-      {/* Cricket field lines — decorative */}
-      <div className="absolute inset-0 pointer-events-none opacity-[0.03]">
-        <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
-          <ellipse cx="50%" cy="50%" rx="45%" ry="40%" fill="none" stroke="white" strokeWidth="1" />
-          <ellipse cx="50%" cy="50%" rx="30%" ry="25%" fill="none" stroke="white" strokeWidth="1" />
-          <line x1="50%" y1="0" x2="50%" y2="100%" stroke="white" strokeWidth="0.5" />
+  useEffect(() => {
+    if (activeView === "public") {
+      setLoadingPublic(true);
+      const apiUrl = (process.env.NEXT_PUBLIC_API_URL || "https://ipl-mock-auction-3aqu.onrender.com").replace(/\/$/, "");
+      fetch(`${apiUrl}/api/public-rooms`)
+        .then((res) => res.json())
+        .then((data) => {
+          setPublicRooms(data.rooms || []);
+          setLoadingPublic(false);
+        })
+        .catch(() => setLoadingPublic(false));
+    }
+  }, [activeView]);
+  return (
+    <main className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden bg-[#000000]">
+      {/* Premium Sports Tech Background Grid & Glows */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {/* Subtle grid pattern */}
+        <div 
+          className="absolute inset-0 opacity-[0.03]" 
+          style={{ 
+            backgroundImage: "linear-gradient(#ffffff 1px, transparent 1px), linear-gradient(90deg, #ffffff 1px, transparent 1px)", 
+            backgroundSize: "40px 40px" 
+          }}
+        />
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[800px] h-[800px] rounded-full bg-[#0066FF] opacity-[0.03] blur-[150px]" />
+        <div className="absolute bottom-0 right-0 w-[500px] h-[500px] rounded-full bg-[#0066FF] opacity-[0.05] blur-[120px]" />
+        
+        {/* Minimal diagonal slashes for tech feel */}
+        <svg className="absolute inset-0 w-full h-full opacity-[0.02]" xmlns="http://www.w3.org/2000/svg">
+           <line x1="10%" y1="-10%" x2="40%" y2="110%" stroke="#0066FF" strokeWidth="2" />
+           <line x1="70%" y1="-10%" x2="100%" y2="110%" stroke="#0066FF" strokeWidth="1" />
         </svg>
       </div>
 
       <motion.div
-        initial={{ opacity: 0, y: 30 }}
+        initial={{ opacity: 0, y: 40 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, ease: "easeOut" }}
-        className="relative z-10 text-center px-6 max-w-2xl"
+        transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+        className="relative z-10 w-full max-w-5xl mx-auto px-6 flex flex-col items-center"
       >
-        {/* Badge */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.1, duration: 0.4 }}
-          className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-8 text-sm font-semibold"
-          style={{ background: "rgba(242,183,5,0.1)", border: "1px solid rgba(242,183,5,0.3)", color: "#F2B705" }}
-        >
-          <span className="w-2 h-2 rounded-full bg-[#F2B705] animate-pulse" />
-          Real-Time Multiplayer Auction
-        </motion.div>
+        {/* Hero Section */}
+        <div className="text-center mb-16 w-full max-w-3xl">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.2, duration: 0.5 }}
+            className="inline-flex items-center gap-2 px-5 py-1.5 rounded-full mb-10 text-xs font-bold tracking-widest uppercase"
+            style={{ background: "rgba(0,102,255,0.08)", border: "1px solid rgba(0,102,255,0.2)", color: "#0066FF" }}
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-[#0066FF] animate-pulse" />
+            Next-Gen Sports Engine
+          </motion.div>
 
-        {/* Title */}
-        <h1 className="font-display text-6xl md:text-8xl font-black mb-4 leading-none tracking-tight">
-          <span className="gradient-text">IPL</span>
-          <br />
-          <span className="text-white">MOCK AUCTION</span>
-        </h1>
+          <h1 className="font-display text-6xl md:text-8xl lg:text-[100px] font-black mb-6 leading-[0.9] tracking-tight uppercase">
+            <span className="text-[#0066FF] block mb-2" style={{ textShadow: "0 0 40px rgba(0,102,255,0.3)" }}>IPL Mock</span>
+            <span className="text-white">Auction</span>
+          </h1>
 
-        <p className="text-subtle text-lg md:text-xl mb-12 leading-relaxed">
-          Host a live, multiplayer auction with your friends.<br />
-          Real IPL players. Real-time bidding. No lag. No desync.
-        </p>
+          <p className="text-[#B8C0D4] text-lg md:text-2xl font-medium tracking-wide">
+            Build Your Squad. <span className="text-white">Outbid Your Rivals.</span> Dominate The Auction.
+          </p>
+        </div>
 
-        {/* Navigation Tabs */}
-        <div className="flex justify-center gap-2 mb-8">
+        {/* View Toggles */}
+        <div className="flex justify-center gap-3 mb-10 w-full flex-wrap">
           <button 
             onClick={() => setActiveView("actions")}
-            className={`px-6 py-2 rounded-full font-bold text-sm transition-colors ${activeView === "actions" ? "bg-[#F2B705] text-[#0B0F19]" : "bg-[rgba(30,45,74,0.5)] text-muted hover:text-white"}`}
+            className={`px-8 py-3 rounded-full font-bold text-sm transition-all duration-300 ${activeView === "actions" ? "bg-[#0066FF] text-white shadow-[0_0_20px_rgba(0,102,255,0.3)]" : "bg-[#050505] border border-[rgba(255,255,255,0.1)] text-[#6B7280] hover:text-white"}`}
           >
-            Play
+            Enter Arena
+          </button>
+          <button 
+            onClick={() => setActiveView("public")}
+            className={`px-8 py-3 rounded-full font-bold text-sm transition-all duration-300 ${activeView === "public" ? "bg-[#0066FF] text-white shadow-[0_0_20px_rgba(0,102,255,0.3)]" : "bg-[#050505] border border-[rgba(255,255,255,0.1)] text-[#6B7280] hover:text-white"}`}
+          >
+            🌐 Public Rooms
           </button>
           <button 
             onClick={() => setActiveView("history")}
-            className={`px-6 py-2 rounded-full font-bold text-sm transition-colors flex items-center gap-2 ${activeView === "history" ? "bg-[#F2B705] text-[#0B0F19]" : "bg-[rgba(30,45,74,0.5)] text-muted hover:text-white"}`}
+            className={`px-8 py-3 rounded-full font-bold text-sm transition-all duration-300 flex items-center gap-2 ${activeView === "history" ? "bg-[#0066FF] text-white shadow-[0_0_20px_rgba(0,102,255,0.3)]" : "bg-[#050505] border border-[rgba(255,255,255,0.1)] text-[#6B7280] hover:text-white"}`}
           >
-            History
+            Auction History
             {history.length > 0 && (
-              <span className={`px-2 py-0.5 rounded-full text-[10px] ${activeView === "history" ? "bg-[#0B0F19] text-[#F2B705]" : "bg-[#F2B705] text-[#0B0F19]"}`}>
+              <span className={`px-2 py-0.5 rounded-full text-[10px] ${activeView === "history" ? "bg-white text-[#0066FF]" : "bg-[rgba(255,255,255,0.1)] text-[#FFFFFF]"}`}>
                 {history.length}
               </span>
             )}
           </button>
         </div>
 
-        {activeView === "actions" ? (
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/create">
-              <motion.button
-                whileHover={{ scale: 1.03, y: -2 }}
-                whileTap={{ scale: 0.97 }}
-                className="btn-primary text-lg px-8 py-4 w-full sm:w-auto"
+        {/* Actions / History Container */}
+        <div className="w-full min-h-[200px] flex items-center justify-center">
+          <AnimatePresence mode="wait">
+            {activeView === "actions" ? (
+              <motion.div
+                key="actions"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ duration: 0.2 }}
+                className="flex flex-col items-center w-full"
               >
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
-                Create Auction
-              </motion.button>
-            </Link>
-            <Link href="/join">
-              <motion.button
-                whileHover={{ scale: 1.03, y: -2 }}
-                whileTap={{ scale: 0.97 }}
-                className="btn-secondary text-lg px-8 py-4 w-full sm:w-auto"
-              >
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                </svg>
-                Join with Code
-              </motion.button>
-            </Link>
-          </div>
-        ) : (
-          <motion.div 
-            initial={{ opacity: 0, y: 10 }} 
-            animate={{ opacity: 1, y: 0 }}
-            className="w-full max-w-lg mx-auto text-left bg-[rgba(10,15,25,0.7)] border border-[rgba(30,45,74,0.6)] p-6 rounded-2xl backdrop-blur-md"
-          >
-            <h2 className="font-display text-2xl font-bold mb-4">Auction History</h2>
-            {history.length === 0 ? (
-              <p className="text-muted text-sm text-center py-8">No previous auctions found.</p>
-            ) : (
-              <div className="space-y-4">
-                {history.sort((a, b) => b.lastVisited - a.lastVisited).map(item => {
-                  const isCompleted = item.status === "ended" || item.status === "completed";
-                  return (
-                    <div key={item.roomCode} className="p-4 rounded-xl bg-[rgba(30,45,74,0.3)] border border-[rgba(30,45,74,0.5)]">
-                      <div className="flex justify-between items-start mb-4">
-                        <div>
-                          <div className="font-mono text-lg font-bold text-white mb-1">Room {item.roomCode}</div>
-                          <div className="text-xs text-muted flex items-center gap-2">
-                            {item.teamCode ? (
-                              <span className="bg-[rgba(99,102,241,0.2)] text-[#8b5cf6] px-2 py-0.5 rounded font-bold">
-                                Team: {item.teamCode}
-                              </span>
-                            ) : (
-                              <span className="bg-[rgba(255,255,255,0.1)] px-2 py-0.5 rounded font-bold">
-                                Spectator
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <div className={`text-xs font-bold uppercase tracking-widest ${isCompleted ? 'text-pitch-green' : 'text-amber-bid'}`}>
-                            {isCompleted ? 'COMPLETED' : item.status}
-                          </div>
-                          <div className="text-[10px] text-subtle mt-1">{formatTimeAgo(item.lastVisited)}</div>
-                        </div>
-                      </div>
-                      
-                      <Link href={isCompleted ? `/room/${item.roomCode}/summary` : `/room/${item.roomCode}/live`}>
-                        <button className={`w-full py-2.5 rounded-lg text-sm font-bold transition-colors ${
-                          isCompleted 
-                            ? "bg-[rgba(31,170,89,0.1)] text-pitch-green hover:bg-[rgba(31,170,89,0.2)]" 
-                            : "bg-[rgba(242,183,5,0.1)] text-amber-bid hover:bg-[rgba(242,183,5,0.2)]"
-                        }`}>
-                          {isCompleted ? 'View Summary' : 'Rejoin Auction'}
-                        </button>
-                      </Link>
+                <div className="flex flex-col sm:flex-row gap-5 justify-center w-full max-w-2xl mb-8 md:mb-12">
+                  <Link href="/create" className="w-full sm:w-1/2 group">
+                    <div className="w-full bg-[#0066FF] border border-[#0066FF] hover:bg-[#3B82F6] rounded-2xl p-4 md:p-5 text-center transition-all duration-300 shadow-[0_0_20px_rgba(0,102,255,0.3)] hover:shadow-[0_0_30px_rgba(0,102,255,0.6)] group-hover:-translate-y-1">
+                      <div className="text-white font-black text-lg md:text-xl tracking-widest uppercase mb-1">Create Auction</div>
+                      <div className="text-blue-100 text-[10px] md:text-xs font-bold uppercase tracking-widest">Host a new room</div>
                     </div>
-                  );
-                })}
-              </div>
-            )}
-          </motion.div>
-        )}
+                  </Link>
+                  <Link href="/join" className="w-full sm:w-1/2 group">
+                    <div className="w-full bg-[#050505] border border-[rgba(0,102,255,0.5)] hover:border-[#0066FF] rounded-2xl p-4 md:p-5 text-center transition-all duration-300 hover:shadow-[0_0_30px_rgba(0,102,255,0.2)] group-hover:-translate-y-1">
+                      <div className="text-white font-black text-lg md:text-xl tracking-widest uppercase mb-1">Join Auction</div>
+                      <div className="text-[#6B7280] group-hover:text-white text-[10px] md:text-xs font-bold uppercase tracking-widest transition-colors">Enter invite code</div>
+                    </div>
+                  </Link>
+                </div>
 
-        {/* Stats bar */}
+                {/* TROPHY CENTERPIECE */}
+                <div className="relative w-full flex justify-center z-10 pointer-events-none mt-4 md:mt-8">
+                  {/* Soft Neon Blue Glow & Floor Reflection */}
+                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[250px] md:w-[450px] h-[250px] md:h-[450px] bg-[#0066FF] opacity-[0.15] blur-[120px] rounded-full"></div>
+                  <div className="absolute bottom-[-20px] left-1/2 -translate-x-1/2 w-[180px] md:w-[350px] h-[20px] md:h-[30px] bg-[#0066FF] opacity-[0.25] blur-[25px] rounded-[100%]"></div>
+                  
+                  <motion.div
+                    animate={{ y: [0, -12, 0], rotate: [-0.5, 0.5, -0.5] }}
+                    transition={{ repeat: Infinity, duration: 6, ease: "easeInOut" }}
+                    className="relative w-[180px] sm:w-[220px] md:w-[380px] aspect-[3/4]"
+                  >
+                    <Image 
+                      src="/trophy.png" 
+                      alt="Championship Trophy" 
+                      fill 
+                      priority
+                      className="object-contain drop-shadow-[0_0_30px_rgba(0,102,255,0.3)]" 
+                    />
+                  </motion.div>
+                </div>
+              </motion.div>
+            ) : activeView === "public" ? (
+              <motion.div 
+                key="public"
+                initial={{ opacity: 0, scale: 0.95 }} 
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ duration: 0.2 }}
+                className="w-full max-w-2xl text-left bg-[#080808] border border-[rgba(255,255,255,0.08)] p-2 rounded-2xl shadow-2xl"
+              >
+                {loadingPublic ? (
+                  <div className="p-12 text-center">
+                    <div className="w-8 h-8 border-4 border-[#0066FF] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+                    <h3 className="text-white font-bold text-xl mb-2">Finding Games...</h3>
+                  </div>
+                ) : publicRooms.length === 0 ? (
+                  <div className="p-12 text-center">
+                    <div className="text-4xl mb-4 opacity-50">🌐</div>
+                    <h3 className="text-white font-bold text-xl mb-2">No Public Rooms</h3>
+                    <p className="text-[#6B7280]">There are no public auctions running right now.</p>
+                  </div>
+                ) : (
+                  <div className="max-h-[350px] overflow-y-auto custom-scroll p-2 space-y-3">
+                    {publicRooms.map(room => (
+                      <div key={room.roomCode} className="p-4 rounded-xl bg-[#050505] border border-[rgba(255,255,255,0.05)] hover:border-[rgba(0,102,255,0.3)] transition-colors flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <span className="font-mono text-xl font-bold text-white tracking-widest">{room.roomCode}</span>
+                            <div className={`text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-sm ${room.status === 'live' ? 'bg-[rgba(239,68,68,0.1)] text-[#EF4444]' : 'bg-[rgba(0,102,255,0.1)] text-[#0066FF]'}`}>
+                              {room.status}
+                            </div>
+                          </div>
+                          <div className="text-xs text-[#B8C0D4] flex items-center gap-3 font-medium">
+                            <span className="opacity-60">Host: {room.hostName}</span>
+                            <span className="opacity-40">•</span>
+                            <span className="opacity-60">{room.playersJoined}/10 Teams Joined</span>
+                          </div>
+                        </div>
+                        <Link href={`/join?code=${room.roomCode}`} className="w-full sm:w-auto">
+                          <button className="w-full sm:w-auto px-6 py-2.5 rounded-lg text-sm font-bold transition-all bg-[rgba(0,102,255,0.1)] text-[#0066FF] hover:bg-[#0066FF] hover:text-white">
+                            Join Game
+                          </button>
+                        </Link>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </motion.div>
+            ) : (
+              <motion.div 
+                key="history"
+                initial={{ opacity: 0, scale: 0.95 }} 
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ duration: 0.2 }}
+                className="w-full max-w-2xl text-left bg-[#080808] border border-[rgba(255,255,255,0.08)] p-2 rounded-2xl shadow-2xl"
+              >
+                {history.length === 0 ? (
+                  <div className="p-12 text-center">
+                    <div className="text-4xl mb-4 opacity-50">🏟️</div>
+                    <h3 className="text-white font-bold text-xl mb-2">No History</h3>
+                    <p className="text-[#6B7280]">You haven't participated in any auctions yet.</p>
+                  </div>
+                ) : (
+                  <div className="max-h-[350px] overflow-y-auto custom-scroll p-2 space-y-3">
+                    {history.sort((a, b) => b.lastVisited - a.lastVisited).map(item => {
+                      const isCompleted = item.status === "ended" || item.status === "completed";
+                      return (
+                        <div key={item.roomCode} className="p-4 rounded-xl bg-[#050505] border border-[rgba(255,255,255,0.05)] hover:border-[rgba(0,102,255,0.3)] transition-colors flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-2">
+                              <span className="font-mono text-xl font-bold text-white tracking-widest">{item.roomCode}</span>
+                              <div className={`text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-sm ${isCompleted ? 'bg-[rgba(34,197,94,0.1)] text-[#22C55E]' : 'bg-[rgba(0,102,255,0.1)] text-[#0066FF]'}`}>
+                                {isCompleted ? 'COMPLETED' : item.status}
+                              </div>
+                            </div>
+                            <div className="text-xs text-[#B8C0D4] flex items-center gap-3 font-medium">
+                              {item.teamCode ? (
+                                <span className="flex items-center gap-1">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-[#0066FF]"></span>
+                                  Team: {item.teamCode}
+                                </span>
+                              ) : (
+                                <span className="opacity-60">Spectator</span>
+                              )}
+                              <span className="opacity-40">•</span>
+                              <span className="opacity-60">{formatTimeAgo(item.lastVisited)}</span>
+                            </div>
+                          </div>
+                          
+                          <Link href={isCompleted ? `/room/${item.roomCode}/summary` : `/room/${item.roomCode}/live`} className="w-full sm:w-auto">
+                            <button className={`w-full sm:w-auto px-6 py-2.5 rounded-lg text-sm font-bold transition-all ${
+                              isCompleted 
+                                ? "bg-[rgba(34,197,94,0.1)] text-[#22C55E] hover:bg-[#22C55E] hover:text-white" 
+                                : "bg-[rgba(0,102,255,0.1)] text-[#0066FF] hover:bg-[#0066FF] hover:text-white"
+                            }`}>
+                              {isCompleted ? 'Summary' : 'Rejoin'}
+                            </button>
+                          </Link>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* Global Stats Footer */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 0.5 }}
-          className="mt-16 flex flex-wrap justify-center gap-8 text-center"
+          transition={{ delay: 0.6 }}
+          className="mt-20 w-full max-w-4xl grid grid-cols-2 md:grid-cols-4 gap-6 text-center border-t border-[rgba(255,255,255,0.05)] pt-12"
         >
           {[
-            { label: "Players", value: "524" },
+            { label: "Total Players", value: "524" },
             { label: "Auction Sets", value: "38" },
             { label: "IPL Teams", value: "10" },
-            { label: "Real-time", value: "✓" },
+            { label: "Real-Time Engine", value: "Active" },
           ].map((stat) => (
-            <div key={stat.label}>
-              <div className="font-display text-3xl font-bold text-amber-bid">{stat.value}</div>
-              <div className="text-muted text-sm uppercase tracking-widest mt-1">{stat.label}</div>
+            <div key={stat.label} className="flex flex-col items-center">
+              <div className="font-display text-3xl md:text-4xl font-black text-[#FFFFFF] mb-1 tracking-tight">{stat.value}</div>
+              <div className="text-[#0066FF] text-[10px] md:text-xs font-bold uppercase tracking-widest">{stat.label}</div>
             </div>
           ))}
         </motion.div>

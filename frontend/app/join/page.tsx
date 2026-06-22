@@ -19,7 +19,7 @@ export default function JoinPage() {
   const [history, setHistory] = useState<RoomHistoryEntry[]>([]);
   const sessionId = useRef(uuidv4());
 
-  // Load history on mount
+  // Load history and URL params on mount
   useEffect(() => {
     const savedName = localStorage.getItem("lastDisplayName");
     if (savedName) setName(savedName);
@@ -29,6 +29,13 @@ export default function JoinPage() {
       try {
         setHistory(JSON.parse(savedHistory));
       } catch {}
+    }
+    
+    // Read room code from URL if present
+    const params = new URLSearchParams(window.location.search);
+    const codeParam = params.get("code");
+    if (codeParam) {
+      setCode(codeParam.toUpperCase());
     }
   }, []);
 

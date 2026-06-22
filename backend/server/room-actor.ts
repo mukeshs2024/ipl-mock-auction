@@ -144,28 +144,34 @@ export class RoomActor {
             ? `🔨 SOLD! ${player.name} → ${soldTo} for ${formatLakhs(soldPrice!)}`
             : `❌ UNSOLD — ${player.name} goes unsold`;
 
-        this.state = { ...this.state, ...finalizeUpdates };
+        this.state = { ...this.state, ...finalizeUpdates, status: "transition" };
         this.log(soldTo ? "sold" : "unsold", logMsg, soldTo ?? undefined);
-
-        // Advance to next player
-        const advance = advanceToNextPlayer(this.state, this.state.allPlayers);
-        this.state = { ...this.state, ...advance };
-
-        if (advance.status === "ended") {
-          this.log("host_action", "🏆 Auction has ended! All sets complete.");
-          this.stopTimer();
-          try { await saveRoomSummary(this.state.roomCode, this.state); } catch {}
-        } else {
-          // Reset timer for the next player
-          this.state.timerEndsAt = Date.now() + this.state.timerDurationSeconds * 1000;
-          
-          const nextSet = this.state.sets[this.state.currentSetIndex] || "";
-          if (advance.currentSetIndex !== undefined && advance.currentSetIndex !== state.currentSetIndex) {
-            this.log("set_started", `📦 Set started: ${nextSet}`);
-          }
-        }
-
         await this.save();
+
+        setTimeout(() => {
+          this.enqueue(async () => {
+            // Advance to next player
+            const advance = advanceToNextPlayer(this.state, this.state.allPlayers);
+            this.state = { ...this.state, ...advance };
+
+            if (advance.status === "ended") {
+              this.log("host_action", "🏆 Auction has ended! All sets complete.");
+              this.stopTimer();
+              try { await saveRoomSummary(this.state.roomCode, this.state); } catch {}
+            } else {
+              this.state.status = "live";
+              // Reset timer for the next player
+              this.state.timerEndsAt = Date.now() + this.state.timerDurationSeconds * 1000;
+              
+              const nextSet = this.state.sets[this.state.currentSetIndex] || "";
+              if (advance.currentSetIndex !== undefined && advance.currentSetIndex !== state.currentSetIndex) {
+                this.log("set_started", `📦 Set started: ${nextSet}`);
+              }
+            }
+
+            await this.save();
+          });
+        }, 1000);
       });
     }, 500);
   }
@@ -294,22 +300,32 @@ export class RoomActor {
         return;
       }
 
-      const error = validateBid(this.state, teamCode, bidAmount, DEFAULT_BID_SLABS);
+      const actualBidAmount = bidAmount || this.state.nextBidAmount;
+      const error = validateBid(this.state, teamCode, actualBidAmount, DEFAULT_BID_SLABS);
       if (error) {
         socket.emit("bid_rejected", { reason: error });
         return;
       }
 
+      let newTimerEndsAt = this.state.timerEndsAt || (Date.now() + this.state.timerDurationSeconds * 1000);
+      const timeRemaining = newTimerEndsAt - Date.now();
+      
+      // Timer Extension: +3s if <= 5s remaining
+      if (timeRemaining <= 5000 && timeRemaining > 0) {
+        newTimerEndsAt += 3000;
+      }
+
       this.state = {
         ...this.state,
-        currentBid: bidAmount,
+        currentBid: actualBidAmount,
+        nextBidAmount: getNextBidAmount(actualBidAmount, DEFAULT_BID_SLABS),
         currentBidderTeam: teamCode,
-        timerEndsAt: Date.now() + this.state.timerDurationSeconds * 1000,
+        timerEndsAt: newTimerEndsAt,
       };
 
       this.log(
         "bid",
-        `${team.name} bid ${formatLakhs(bidAmount)}`,
+        `${team.name} bid ${formatLakhs(actualBidAmount)}`,
         teamCode
       );
 
@@ -350,6 +366,7 @@ export class RoomActor {
         currentSetQueue: shuffled,
         currentPlayer: { ...firstPlayer, status: "in_auction" },
         currentBid: 0,
+        nextBidAmount: firstPlayer.basePrice,
         currentBidderTeam: null,
         timerEndsAt: Date.now() + this.state.timerDurationSeconds * 1000,
       };
@@ -436,6 +453,12 @@ export class RoomActor {
   handleKickUser(socket: Socket, hostToken: string, targetSessionId: string): void {
     if (!this.verifyHost(socket, hostToken)) return;
     this.enqueue(async () => {
+      if (targetSessionId === this.state.hostSessionId) {
+        // Send rejection event back to the host socket
+        socket.emit("bid_rejected", { reason: "Cannot kick yourself. Transfer team ownership first." });
+        return;
+      }
+
       // Find team owned by this session
       const team = Object.values(this.state.teams).find(
         (t) => t.ownerSessionId === targetSessionId
@@ -552,7 +575,8 @@ export function createInitialRoomState(
   sets: string[],
   pursePerTeam: number,
   timerDurationSeconds: number,
-  reunsoldPhaseEnabled: boolean
+  reunsoldPhaseEnabled: boolean,
+  isPublic: boolean
 ): RoomState {
   const teams: Record<string, Team> = {};
   for (const t of IPL_TEAMS) {
@@ -568,6 +592,7 @@ export function createInitialRoomState(
 
   return {
     roomCode,
+    isPublic,
     hostSessionId,
     hostName,
     status: "lobby",
@@ -577,6 +602,7 @@ export function createInitialRoomState(
     currentSetQueue: [],
     currentPlayer: null,
     currentBid: 0,
+    nextBidAmount: 0,
     currentBidderTeam: null,
     timerEndsAt: null,
     timerDurationSeconds: Math.max(5, timerDurationSeconds),
